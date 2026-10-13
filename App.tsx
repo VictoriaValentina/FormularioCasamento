@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -42,6 +41,12 @@ type RSVPFormData = {
   qtd: number;
   nomesCriancas: string[];
   recado: string;
+};
+
+type FeedbackMessage = {
+  title: string;
+  message: string;
+  kind: "success" | "error" | "info";
 };
 
 const createInitialFormData = (): RSVPFormData => ({
@@ -167,23 +172,22 @@ function Invitation() {
   const [formData, setFormData] = useState<RSVPFormData>(createInitialFormData);
   const [scrollY, setScrollY] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
 
   const sendConfirmation = async () => {
+    setFeedback(null);
     if (!nome.trim()) {
-      Alert.alert(
-        "Falta seu nome",
-        "Preencha seu nome completo para continuar.",
-      );
+      setFeedback({ title: "Campo obrigatório", message: "Preencha seu nome.", kind: "error" });
       return;
     }
 
     if (!formData.sobrenome.trim()) {
-      Alert.alert("Campo obrigatório", "Preencha seu sobrenome.");
+      setFeedback({ title: "Campo obrigatório", message: "Preencha seu sobrenome.", kind: "error" });
       return;
     }
 
     if (!formData.telefone.trim()) {
-      Alert.alert("Campo obrigatório", "Preencha seu telefone com DDD.");
+      setFeedback({ title: "Campo obrigatório", message: "Preencha seu telefone com DDD.", kind: "error" });
       return;
     }
 
@@ -191,7 +195,7 @@ function Invitation() {
       formData.vaiFesta === "sim" && formData.crianca === "sim";
 
     if (precisaInformacoesCriancas && formData.qtd < 1) {
-      Alert.alert("Campo obrigatório", "Informe quantas crianças você levará.");
+      setFeedback({ title: "Campo obrigatório", message: "Informe quantas crianças você levará.", kind: "error" });
       return;
     }
 
@@ -199,7 +203,7 @@ function Invitation() {
       precisaInformacoesCriancas &&
       formData.idadesCriancas.some((idade) => !idade.trim())
     ) {
-      Alert.alert("Campo obrigatório", "Informe a idade de cada criança.");
+      setFeedback({ title: "Campo obrigatório", message: "Informe a idade de cada criança.", kind: "error" });
       return;
     }
 
@@ -207,10 +211,11 @@ function Invitation() {
       precisaInformacoesCriancas &&
       formData.idadesCriancas.some((idade) => Number(idade) >= 8)
     ) {
-      Alert.alert(
-        "Cadastro individual",
-        "Crianças com mais de 8 anos na data do casamento precisam ser cadastradas individualmente.",
-      );
+      setFeedback({
+        title: "Cadastro individual",
+        message: "Crianças com 8 anos ou mais na data do casamento precisam ser cadastradas individualmente.",
+        kind: "info",
+      });
       return;
     }
 
@@ -218,7 +223,7 @@ function Invitation() {
       precisaInformacoesCriancas &&
       formData.nomesCriancas.slice(0, formData.qtd).some((nomeCrianca) => !nomeCrianca.trim())
     ) {
-      Alert.alert("Campo obrigatório", "Preencha o nome de cada criança.");
+      setFeedback({ title: "Campo obrigatório", message: "Preencha o nome de cada criança.", kind: "error" });
       return;
     }
 
@@ -233,9 +238,11 @@ function Invitation() {
       if (!checkResult.success) throw new Error(checkResult.error);
 
       if (checkResult.exists) {
-        Alert.alert(
-          "Você já confirmou sua presença. Caso queira alterar os dados, entre em contato com os noivos.",
-        );
+        setFeedback({
+          title: "Confirmação já cadastrada",
+          message: "Você já confirmou sua presença. Para alterar os dados, entre em contato com os noivos.",
+          kind: "info",
+        });
       } else {
         try {
           const result = await submitRSVP({
@@ -253,23 +260,28 @@ function Invitation() {
           if (result.success) {
             setNome("");
             setFormData(createInitialFormData());
-            Alert.alert(
-              "Confirmação enviada",
-              "Sua confirmação foi enviada com sucesso!",
-            );
-            Alert.alert(
-              "Atenção",
-              "Mais próximo da data do casamento, nossa equipe de cerimonial entrará em contato para confirmar sua presença e compartilhar informações importantes sobre o grande dia. Caso não receba a mensagem, pedimos, por gentileza, que entre em contato com os noivos.",
-            );
+            setFeedback({
+              title: "Confirmação enviada",
+              message: "Sua confirmação foi enviada com sucesso! Mais próximo da data do casamento, nossa equipe de cerimonial entrará em contato com informações importantes. Caso não receba a mensagem, entre em contato com os noivos.",
+              kind: "success",
+            });
           } else throw new Error(result.error);
         } catch (err) {
-          Alert.alert("Erro ao enviar confirmação", err instanceof Error ? err.message : "Tente novamente.");
+          setFeedback({
+            title: "Erro ao enviar confirmação",
+            message: err instanceof Error ? err.message : "Tente novamente.",
+            kind: "error",
+          });
         }
 
        
       }
     } catch (err) {
-      Alert.alert("Erro ao verificar confirmação", err instanceof Error ? err.message : "Tente novamente.");
+      setFeedback({
+        title: "Erro ao verificar confirmação",
+        message: err instanceof Error ? err.message : "Tente novamente.",
+        kind: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -545,6 +557,31 @@ function Invitation() {
                 placeholderTextColor="#9b9094"
                 style={[styles.input, styles.textArea]}
               />
+              {feedback && (
+                <View
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite"
+                  style={[
+                    styles.feedback,
+                    feedback.kind === "success" && styles.feedbackSuccess,
+                    feedback.kind === "error" && styles.feedbackError,
+                    feedback.kind === "info" && styles.feedbackInfo,
+                  ]}
+                >
+                  <View style={styles.feedbackCopy}>
+                    <Text style={styles.feedbackTitle}>{feedback.title}</Text>
+                    <Text style={styles.feedbackText}>{feedback.message}</Text>
+                  </View>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Fechar mensagem"
+                    onPress={() => setFeedback(null)}
+                    style={styles.feedbackClose}
+                  >
+                    <Text style={styles.feedbackCloseText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <Button
                 title="Enviar confirmação"
                 disabled={loading}
@@ -899,6 +936,36 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 12,
   },
+  feedback: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
+  },
+  feedbackSuccess: {
+    backgroundColor: "#edf7ef",
+    borderColor: "#a8d5b0",
+  },
+  feedbackError: {
+    backgroundColor: "#fff0ef",
+    borderColor: "#e5b2ae",
+  },
+  feedbackInfo: {
+    backgroundColor: "#f4f1f8",
+    borderColor: "#d2c5df",
+  },
+  feedbackCopy: { flex: 1, paddingRight: 8 },
+  feedbackTitle: {
+    color: C.azul,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  feedbackText: { color: C.text, fontSize: 13, lineHeight: 19 },
+  feedbackClose: { paddingHorizontal: 4, paddingVertical: 0 },
+  feedbackCloseText: { color: C.text, fontSize: 22, lineHeight: 24 },
   footer: {
     backgroundColor: C.azul,
     paddingVertical: 45,

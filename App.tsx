@@ -10,6 +10,7 @@ import {
   View,
   Platform,
   Dimensions,
+  Modal,
 } from "react-native";
 import {
   SafeAreaProvider,
@@ -261,8 +262,8 @@ function Invitation() {
             setNome("");
             setFormData(createInitialFormData());
             setFeedback({
-              title: "Confirmação enviada",
-              message: "Sua confirmação foi enviada com sucesso! Mais próximo da data do casamento, nossa equipe de cerimonial entrará em contato com informações importantes. Caso não receba a mensagem, entre em contato com os noivos.",
+              title: "CONFIRMAÇÃO ENVIADA",
+              message: "Sua confirmação foi enviada! Mais próximo da data do casamento, nossa equipe de cerimonial entrará em contato com informações importantes. Caso não receba a mensagem, entre em contato com os noivos.",
               kind: "success",
             });
           } else throw new Error(result.error);
@@ -557,31 +558,6 @@ function Invitation() {
                 placeholderTextColor="#9b9094"
                 style={[styles.input, styles.textArea]}
               />
-              {feedback && (
-                <View
-                  accessibilityRole="alert"
-                  accessibilityLiveRegion="polite"
-                  style={[
-                    styles.feedback,
-                    feedback.kind === "success" && styles.feedbackSuccess,
-                    feedback.kind === "error" && styles.feedbackError,
-                    feedback.kind === "info" && styles.feedbackInfo,
-                  ]}
-                >
-                  <View style={styles.feedbackCopy}>
-                    <Text style={styles.feedbackTitle}>{feedback.title}</Text>
-                    <Text style={styles.feedbackText}>{feedback.message}</Text>
-                  </View>
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel="Fechar mensagem"
-                    onPress={() => setFeedback(null)}
-                    style={styles.feedbackClose}
-                  >
-                    <Text style={styles.feedbackCloseText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
               <Button
                 title="Enviar confirmação"
                 disabled={loading}
@@ -598,6 +574,37 @@ function Invitation() {
           </Reveal>
         </View>
       </ScrollView>
+      <Modal
+        visible={feedback !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFeedback(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          {feedback && (
+            <View
+              accessibilityRole="alert"
+              accessibilityViewIsModal
+              style={[
+                styles.feedback,
+                feedback.kind === "success" && styles.feedbackSuccess,
+                feedback.kind === "error" && styles.feedbackError,
+                feedback.kind === "info" && styles.feedbackInfo,
+              ]}
+            >
+              <Text style={styles.feedbackTitle}>{feedback.title}</Text>
+              <Text style={styles.feedbackText}>{feedback.message}</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => setFeedback(null)}
+                style={styles.feedbackOkButton}
+              >
+                <Text style={styles.feedbackOkText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </Modal>
       <View
         pointerEvents="none"
         style={{
@@ -937,12 +944,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   feedback: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    width: "100%",
+    maxWidth: 420,
     borderWidth: 1,
     borderRadius: 12,
-    padding: 14,
-    marginTop: 16,
+    padding: 22,
+    shadowColor: "#000000",
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   feedbackSuccess: {
     backgroundColor: "#edf7ef",
@@ -956,16 +967,31 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f1f8",
     borderColor: "#d2c5df",
   },
-  feedbackCopy: { flex: 1, paddingRight: 8 },
   feedbackTitle: {
     color: C.azul,
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   feedbackText: { color: C.text, fontSize: 13, lineHeight: 19 },
-  feedbackClose: { paddingHorizontal: 4, paddingVertical: 0 },
-  feedbackCloseText: { color: C.text, fontSize: 22, lineHeight: 24 },
+  modalBackdrop: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "rgba(24, 18, 24, 0.55)",
+  },
+  feedbackOkButton: {
+    alignSelf: "flex-end",
+    minWidth: 76,
+    alignItems: "center",
+    borderRadius: 999,
+    backgroundColor: C.vinho,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  feedbackOkText: { color: C.branco, fontSize: 13, fontWeight: "700" },
   footer: {
     backgroundColor: C.azul,
     paddingVertical: 45,
